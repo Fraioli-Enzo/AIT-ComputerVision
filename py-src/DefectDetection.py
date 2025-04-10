@@ -42,6 +42,7 @@ def display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, ro
     foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
     cv2.putText(foreground, f"Frame no{frame_counter}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv2.rectangle(foreground, (roi_x1, roi_y1), (roi_x2, roi_y2), (255, 0, 0), 2)
+    cv2.putText(foreground, "YOLO ROI", (roi_x1 + 10, roi_y1 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
     cv2.imshow("Foreground", foreground)
 
 def draw_bounding_boxes(results, frame, model):
@@ -80,7 +81,7 @@ def detect_fabric_start_end(video_path):
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         middle_line_x = int(video_width / 2)
 
-        roi_x1, roi_y1, roi_x2, roi_y2 = middle_line_x-200, 0, middle_line_x+200, video_height
+        roi_x1, roi_y1, roi_x2, roi_y2 = middle_line_x+3, 0, middle_line_x+403, video_height
 
         # Crop the frame to the ROI
         roi_frame = frame[roi_y1:roi_y2, roi_x1:roi_x2]
