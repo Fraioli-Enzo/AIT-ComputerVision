@@ -15,3 +15,6 @@ AIT-ComputerVision is a project designed to detect defects in videos using deep 
 1. Install the dependencies if needed:  
    ```bash
    pip install -r requirements.txt
+
+## Infos
+To see all the research and development of this project, go to the `CameraDetection` repository.
