@@ -38,8 +38,9 @@ def draw_middle_line(frame, middle_line_x, video_height, intersects_contour, fra
         print(f"Frame {frame_counter} | Number {intersection_frame}")
     return frame_counter, intersection_frame
 
-def display_foreground(frame, foreground_mask):
+def display_foreground(frame, foreground_mask, frame_counter):
     foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
+    cv2.putText(foreground, f"Frame no{frame_counter}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv2.imshow("Foreground", foreground)
 
 def draw_bounding_boxes(results, frame, model):
@@ -62,7 +63,7 @@ def detect_fabric_start_end(video_path):
     
     intersection_frame = 0  # Initialize the test variable
     frame_counter = 0
-    frame_delay = 20
+    frame_delay = 24
     print("Press 'q' to quit")
 
     while True:
@@ -84,12 +85,13 @@ def detect_fabric_start_end(video_path):
         intersects_contour = check_intersection(contours, middle_line_x, video_height)
         frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
         
-        # Load the YOLO model
-        model_path = os.path.join(base_path, "models\\YOLOv10_smallFDD.torchscript")
-        model = YOLO(model_path, task="detect")
-        results = model(frame)
-        draw_bounding_boxes(results, frame, model)
-        display_foreground(frame, foreground_mask)
+        # # Load the YOLO model
+        # model_path = os.path.join(base_path, "models\\YOLOv10_smallFDD.torchscript")
+        # model = YOLO(model_path, task="detect")
+        # results = model(frame)
+        # draw_bounding_boxes(results, frame, model)
+        
+        display_foreground(frame, foreground_mask, frame_counter)
 
         key = cv2.waitKey(frame_delay) & 0xFF
         if key == ord('q'):
