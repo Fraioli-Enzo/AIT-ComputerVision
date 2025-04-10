@@ -42,6 +42,19 @@ def display_foreground(frame, foreground_mask):
     foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
     cv2.imshow("Foreground", foreground)
 
+def draw_bounding_boxes(results, frame, model):
+    # Fix for extracting bounding box coordinates
+    for result in results:
+        boxes = result.boxes
+        for box in boxes:
+            # Ensure box.xyxy is flattened into a list of four elements
+            x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())  # Access the first element if it's nested
+            confidence = float(box.conf)  # Convert confidence to a float
+            class_id = int(box.cls)  # Convert class ID to an integer
+            label = f"{model.names[class_id]} {confidence:.2f}"
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            
 def detect_fabric_start_end(video_path):
     cap = initialize_video_capture(video_path)
     if cap is None:
@@ -70,7 +83,12 @@ def detect_fabric_start_end(video_path):
 
         intersects_contour = check_intersection(contours, middle_line_x, video_height)
         frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
-
+        
+        # Load the YOLO model
+        model_path = os.path.join(base_path, "models\\YOLOv10_smallFDD.torchscript")
+        model = YOLO(model_path, task="detect")
+        results = model(frame)
+        draw_bounding_boxes(results, frame, model)
         display_foreground(frame, foreground_mask)
 
         key = cv2.waitKey(frame_delay) & 0xFF
