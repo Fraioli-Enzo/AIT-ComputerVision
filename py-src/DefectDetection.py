@@ -79,11 +79,22 @@ def detect_fabric_start_end(video_path_bool=False):
     model_path = os.path.join(base_path, f"models\\{model_version_epoch}.torchscript")
     model = YOLO(model_path, task="detect")
 
+    # Create a window for the control panel
+    cv2.namedWindow("Control Panel")
+
+    # Add a trackbar for the confidence threshold (0 to 100, scaled to 0.0 - 1.0)
+    def nothing(x):
+        pass
+    cv2.createTrackbar("Confidence Threshold", "Control Panel", 50, 100, nothing)
+
     while True:
         ret, frame = cap.read()
         if not ret:
             print("End of video or error reading frame.")
             break
+
+        # Get the current threshold value from the trackbar
+        confidence_threshold = cv2.getTrackbarPos("Confidence Threshold", "Control Panel") / 100.0
 
         video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -104,6 +115,17 @@ def detect_fabric_start_end(video_path_bool=False):
         frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
         
         results = model(roi_frame)
+
+        # Filter detections based on the confidence threshold
+        filtered_results = []
+        for result in results:
+            filtered_boxes = []
+            for box in result.boxes:
+                if box.conf >= confidence_threshold:  # Apply the threshold
+                    filtered_boxes.append(box)
+            result.boxes = filtered_boxes  # Update the result with filtered boxes
+            filtered_results.append(result)
+        
         draw_bounding_boxes(results, roi_frame, model)
 
         display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, roi_x2, roi_y2)
