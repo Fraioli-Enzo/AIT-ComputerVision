@@ -38,9 +38,10 @@ def draw_middle_line(frame, middle_line_x, video_height, intersects_contour, fra
         print(f"Frame {frame_counter} | Number {intersection_frame}")
     return frame_counter, intersection_frame
 
-def display_foreground(frame, foreground_mask, frame_counter):
+def display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, roi_x2, roi_y2):
     foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
     cv2.putText(foreground, f"Frame no{frame_counter}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.rectangle(foreground, (roi_x1, roi_y1), (roi_x2, roi_y2), (255, 0, 0), 2)
     cv2.imshow("Foreground", foreground)
 
 def draw_bounding_boxes(results, frame, model):
@@ -66,6 +67,9 @@ def detect_fabric_start_end(video_path):
     frame_delay = 24
     print("Press 'q' to quit")
 
+    model_path = os.path.join(base_path, "models\\YOLOv11_smallFDD25.torchscript")
+    model = YOLO(model_path, task="detect")
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -76,6 +80,11 @@ def detect_fabric_start_end(video_path):
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         middle_line_x = int(video_width / 2)
 
+        roi_x1, roi_y1, roi_x2, roi_y2 = middle_line_x-200, 0, middle_line_x+200, video_height
+
+        # Crop the frame to the ROI
+        roi_frame = frame[roi_y1:roi_y2, roi_x1:roi_x2]
+
         binary_mask, contours = process_frame(frame)
         cv2.drawContours(frame, contours, -1, (0, 0, 255), 2)
 
@@ -85,13 +94,10 @@ def detect_fabric_start_end(video_path):
         intersects_contour = check_intersection(contours, middle_line_x, video_height)
         frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
         
-        # # Load the YOLO model
-        # model_path = os.path.join(base_path, "models\\YOLOv10_smallFDD.torchscript")
-        # model = YOLO(model_path, task="detect")
-        # results = model(frame)
-        # draw_bounding_boxes(results, frame, model)
-        
-        display_foreground(frame, foreground_mask, frame_counter)
+        results = model(roi_frame)
+        draw_bounding_boxes(results, roi_frame, model)
+
+        display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, roi_x2, roi_y2)
 
         key = cv2.waitKey(frame_delay) & 0xFF
         if key == ord('q'):
