@@ -3,14 +3,46 @@ import numpy as np
 import cv2
 import os
 
-def detect_fabric_start_end(video_path):
+def initialize_video_capture(video_path):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print(f"Error: Could not open video file: {video_path}")
+        return None
+    return cap
+
+def process_frame(frame):
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, binary_mask = cv2.threshold(gray_frame, 127, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    return binary_mask, contours
+
+def create_foreground_mask(binary_mask, contours, min_area=150000):
+    foreground_mask = np.zeros_like(binary_mask)
+    for contour in contours:
+        if cv2.contourArea(contour) > min_area:
+            cv2.drawContours(foreground_mask, [contour], 0, 255, -1)
+    return foreground_mask
+
+def check_intersection(contours, middle_line_x, video_height):
+    for contour in contours:
+        if cv2.pointPolygonTest(contour, (middle_line_x, int(video_height / 2)), False) >= 0:
+            return True
+    return False
+
+def draw_middle_line(frame, middle_line_x, video_height, intersects_contour):
+    line_color = (0, 255, 0) if intersects_contour else (0, 0, 255)
+    cv2.line(frame, (middle_line_x, 0), (middle_line_x, video_height), line_color, 3)
+
+def display_foreground(frame, foreground_mask):
+    foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
+    cv2.imshow("Foreground", foreground)
+
+def detect_fabric_start_end(video_path):
+    cap = initialize_video_capture(video_path)
+    if cap is None:
         return
 
-    # Initialize delay between frames (in milliseconds)
-    frame_delay = 20 
+    frame_delay = 20
     print("Press 'q' to quit")
 
     while True:
@@ -19,44 +51,27 @@ def detect_fabric_start_end(video_path):
             print("End of video or error reading frame.")
             break
 
-        # Put a line in the middle
         video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        cv2.line(frame, (int(video_width / 2), 0), (int(video_width / 2), video_height), (0, 255, 0), 3)
+        middle_line_x = int(video_width / 2)
 
-        # Apply simple background removal using grayscale thresholding
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, binary_mask = cv2.threshold(gray_frame, 127, 255, cv2.THRESH_BINARY)
-
-        # Find contours in the binary mask
-        contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        binary_mask, contours = process_frame(frame)
         cv2.drawContours(frame, contours, -1, (0, 0, 255), 2)
 
-        # Create a mask for the foreground
-        foreground_mask = np.zeros_like(binary_mask)
-        for contour in contours:
-            # Only keep larger contours (adjust area threshold as needed)
-            if cv2.contourArea(contour) > 150000:
-                cv2.drawContours(foreground_mask, [contour], 0, 255, -1)
-        
-        # Always ensure the middle vertical line is visible in the mask
-        cv2.line(foreground_mask, (int(video_width / 2), 0), (int(video_width / 2), video_height), 255, 3)
+        foreground_mask = create_foreground_mask(binary_mask, contours)
+        cv2.line(foreground_mask, (middle_line_x, 0), (middle_line_x, video_height), 255, 3)
 
-        # Apply the mask to the original frame to extract foreground
-        foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
+        intersects_contour = check_intersection(contours, middle_line_x, video_height)
+        draw_middle_line(frame, middle_line_x, video_height, intersects_contour)
 
-        # Display the masked result in a separate window
-        cv2.imshow("Foreground", foreground)
+        display_foreground(frame, foreground_mask)
 
-        # Wait for the specified delay and check for key presses
         key = cv2.waitKey(frame_delay) & 0xFF
-        if key == ord('q'):  # Quit
+        if key == ord('q'):
             break
-        
+
     cap.release()
     cv2.destroyAllWindows()
-
-    return None  
 
 
 
