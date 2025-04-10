@@ -29,9 +29,14 @@ def check_intersection(contours, middle_line_x, video_height):
             return True
     return False
 
-def draw_middle_line(frame, middle_line_x, video_height, intersects_contour):
+def draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame):
     line_color = (0, 255, 0) if intersects_contour else (0, 0, 255)
     cv2.line(frame, (middle_line_x, 0), (middle_line_x, video_height), line_color, 3)
+    frame_counter += 1
+    if intersects_contour:
+        intersection_frame += 1
+        print(f"Frame {frame_counter} | Number {intersection_frame}")
+    return frame_counter, intersection_frame
 
 def display_foreground(frame, foreground_mask):
     foreground = cv2.bitwise_and(frame, frame, mask=foreground_mask)
@@ -41,7 +46,9 @@ def detect_fabric_start_end(video_path):
     cap = initialize_video_capture(video_path)
     if cap is None:
         return
-
+    
+    intersection_frame = 0  # Initialize the test variable
+    frame_counter = 0
     frame_delay = 20
     print("Press 'q' to quit")
 
@@ -62,7 +69,7 @@ def detect_fabric_start_end(video_path):
         cv2.line(foreground_mask, (middle_line_x, 0), (middle_line_x, video_height), 255, 3)
 
         intersects_contour = check_intersection(contours, middle_line_x, video_height)
-        draw_middle_line(frame, middle_line_x, video_height, intersects_contour)
+        frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
 
         display_foreground(frame, foreground_mask)
 
