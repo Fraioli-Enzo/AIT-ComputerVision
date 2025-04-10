@@ -68,7 +68,7 @@ def detect_fabric_start_end(video_path):
     frame_delay = 24
     print("Press 'q' to quit")
 
-    model_path = os.path.join(base_path, "models\\YOLOv11_smallFDD25.torchscript")
+    model_path = os.path.join(base_path, f"models\\{model_version_epoch}.torchscript")
     model = YOLO(model_path, task="detect")
 
     while True:
@@ -115,7 +115,10 @@ if __name__ == "__main__":
 
     # Create a dictionary mapping indices to model names
     models = {
-        "1": "YOLOv10_smallFDD",
+        "1": "YOLOv8_smallFDD25",
+        "2": "YOLOv10_smallFDD25",
+        "3": "YOLOv11_smallFDD25",
+        "4": "YOLOv11_smallFDD50",
     }
     model_index = "1" 
     
