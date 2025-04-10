@@ -3,13 +3,21 @@ import numpy as np
 import cv2
 import os
 
-def initialize_video_capture(video_path):
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print(f"Error: Could not open video file: {video_path}")
-        return None
-    return cap
-
+def initialize_video_capture(video_path_bool):
+    if video_path_bool:
+        video_path = os.path.join(base_path, "videos\\video_nolight.mp4") 
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"Error: Could not open video file: {video_path}")
+            return None
+        return cap
+    else:
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("Error: Could not open webcam.")
+            return None
+        return cap
+    
 def process_frame(frame):
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, binary_mask = cv2.threshold(gray_frame, 127, 255, cv2.THRESH_BINARY)
@@ -58,11 +66,11 @@ def draw_bounding_boxes(results, frame, model):
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             
-def detect_fabric_start_end(video_path):
-    cap = initialize_video_capture(video_path)
+def detect_fabric_start_end(video_path_bool=False):   
+    cap = initialize_video_capture(video_path_bool)
     if cap is None:
         return
-    
+
     intersection_frame = 0  # Initialize the test variable
     frame_counter = 0
     frame_delay = 24
@@ -111,7 +119,6 @@ def detect_fabric_start_end(video_path):
 
 if __name__ == "__main__":
     base_path = os.path.dirname("AIT-FabricDetection")
-    video_path = os.path.join(base_path, "videos\\video_nolight.mp4")
 
     # Create a dictionary mapping indices to model names
     models = {
@@ -119,10 +126,10 @@ if __name__ == "__main__":
         "2": "YOLOv10_smallFDD25",
         "3": "YOLOv11_smallFDD25",
         "4": "YOLOv11_smallFDD50",
-    }
-    model_index = "1" 
-    
+    } 
     # Set the model_version_epoch based on the selected index
+    model_index = "1"
     model_version_epoch = models[model_index]
     print(f"Selected model: {model_version_epoch}")
-    detect_fabric_start_end(video_path)
+
+    detect_fabric_start_end(video_path_bool=True) # Set to True for video file, False for webcam | Default is False
