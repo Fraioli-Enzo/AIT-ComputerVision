@@ -53,6 +53,17 @@ def display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, ro
     cv2.putText(foreground, "YOLO ROI", (roi_x1 + 10, roi_y1 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
     cv2.imshow("Foreground", foreground)
 
+def windows_management():
+    # Create a window for the control panel
+    cv2.namedWindow("Control Panel", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Control Panel", cv2.WND_PROP_TOPMOST, 1)
+    cv2.namedWindow("Foreground", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Foreground", cv2.WND_PROP_TOPMOST, 2)
+
+    # Add a trackbar for the confidence threshold (0 to 100, scaled to 0.0 - 1.0)
+    cv2.createTrackbar("Threshold", "Control Panel", 25, 100, lambda x: None)
+    cv2.createTrackbar("Saturation", "Control Panel", 25, 100, lambda x: None)
+
 def draw_bounding_boxes(results, frame, model):
     # Fix for extracting bounding box coordinates
     for result in results:
@@ -79,14 +90,8 @@ def detect_fabric_start_end(video_path_bool=False):
     model_path = os.path.join(base_path, f"models\\{model_version_epoch}.torchscript")
     model = YOLO(model_path, task="detect")
 
-    # Create a window for the control panel
-    cv2.namedWindow("Control Panel")
-
-    # Add a trackbar for the confidence threshold (0 to 100, scaled to 0.0 - 1.0)
-    def nothing(x):
-        pass
-    cv2.createTrackbar("Confidence Threshold", "Control Panel", 50, 100, nothing)
-
+    windows_management()
+    
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -94,7 +99,7 @@ def detect_fabric_start_end(video_path_bool=False):
             break
 
         # Get the current threshold value from the trackbar
-        confidence_threshold = cv2.getTrackbarPos("Confidence Threshold", "Control Panel") / 100.0
+        confidence_threshold = cv2.getTrackbarPos("Threshold", "Control Panel") / 100.0
 
         video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
