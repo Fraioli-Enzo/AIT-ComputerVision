@@ -7,7 +7,7 @@ AIT-ComputerVision is a project designed to detect defects in videos using deep 
 - **models/**: Contains the pre-trained YOLOv10 model (`YOLOv10_smallFDD.torchscript`).  
 - **py-src/**: Contains the main script `DefectDetection.py` for running defect detection.  
 - **videos/**: Contains sample videos (`video_light.mp4`, `video_nolight.mp4`) to test the program.
-- **dxf/**: Contains dxf file with the fabric and the defects. WORK IN PROGRESS
+- **dxf/**: Contains dxf file with the fabric and the defects (use a dfx viewer to work with them). WORK IN PROGRESS RATIO BETWEEN CONTOUR FABRICS AND DEFECT NOT GOOD
 
 ## Requirements  
 - Python 3.8 or higher

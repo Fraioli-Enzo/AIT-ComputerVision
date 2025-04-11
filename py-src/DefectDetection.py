@@ -84,13 +84,14 @@ def draw_bounding_boxes(results, frame, model, frame_counter):
 
 def draw_dxf_fabrics(msp, intersection_frame, last_X, coordinates):
     Y = 0  
-    X = intersection_frame * 1
+    X = intersection_frame * 10
     if intersection_frame != 0:
         msp.add_line((last_X, Y), (X, Y))
-        msp.add_line((last_X, Y + 100), (X, Y + 100))
+        msp.add_line((last_X, Y + 1080), (X, Y + 1080))
     else:
-        msp.add_line((X, Y), (X, Y + 100)) 
+        msp.add_line((X, Y), (X, Y + 1080)) 
     if len(coordinates) > 0:
+        print (coordinates)
         x1, y1, x2, y2 = coordinates
         msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], close=True)
     last_X = X  
@@ -136,7 +137,6 @@ def detect_fabric_start_end(video_path_bool=False):
         middle_line_x = int(video_width / 2)
 
         roi_x1, roi_y1, roi_x2, roi_y2 = middle_line_x+3, 0, middle_line_x+403, video_height
-
         # Crop the frame to the ROI
         roi_frame = frame[roi_y1:roi_y2, roi_x1:roi_x2]
 
@@ -174,7 +174,7 @@ def detect_fabric_start_end(video_path_bool=False):
     
     # Save the DXF file
     dxf_path = os.path.join(base_path, "dxf\\fabric_detection.dxf")
-    msp.add_line((X, Y), (X, Y + 100))
+    msp.add_line((X, Y), (X, Y + 1080))
     doc.saveas(dxf_path)
     print(f"DXF file saved at: {dxf_path}")
     cap.release()
