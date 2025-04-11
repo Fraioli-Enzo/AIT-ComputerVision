@@ -65,8 +65,9 @@ def windows_management():
     cv2.createTrackbar("Threshold", "Control Panel", 25, 100, lambda x: None)
     cv2.createTrackbar("Saturation", "Control Panel", 100, 100, lambda x: None) # Work in progress for saturation
 
-def draw_bounding_boxes(results, frame, model, frame_counter, test = []):
+def draw_bounding_boxes(results, frame, model, frame_counter):
     # Fix for extracting bounding box coordinates
+    coordinates = ()  # Initialize coordinates to None
     for result in results:
         boxes = result.boxes
         for box in boxes:
@@ -77,11 +78,11 @@ def draw_bounding_boxes(results, frame, model, frame_counter, test = []):
             label = f"{model.names[class_id]} {confidence:.2f}"
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            test.append(frame_counter)  # Append the detection to the test list
-    return test
+            coordinates = (x1, y1, x2, y2)  # Store the coordinates of the bounding box
+    return coordinates
             
 
-def draw_dxf_fabrics(msp, intersection_frame, last_X):
+def draw_dxf_fabrics(msp, intersection_frame, last_X, coordinates):
     Y = 0  
     X = intersection_frame * 1
     if intersection_frame != 0:
@@ -89,6 +90,9 @@ def draw_dxf_fabrics(msp, intersection_frame, last_X):
         msp.add_line((last_X, Y + 100), (X, Y + 100))
     else:
         msp.add_line((X, Y), (X, Y + 100)) 
+    if len(coordinates) > 0:
+        x1, y1, x2, y2 = coordinates
+        msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], close=True)
     last_X = X  
     return last_X, X, Y
  
@@ -96,8 +100,6 @@ def detect_fabric_start_end(video_path_bool=False):
     cap = initialize_video_capture(video_path_bool)
     if cap is None:
         return
-
-    test = []
 
     #dxf setup
     doc = ezdxf.new()
@@ -146,8 +148,6 @@ def detect_fabric_start_end(video_path_bool=False):
 
         intersects_contour = check_intersection(contours, middle_line_x, video_height)
         frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
-        
-        last_X, X, Y = draw_dxf_fabrics(msp, intersection_frame, last_X)
 
         results = model(roi_frame)
 
@@ -161,7 +161,10 @@ def detect_fabric_start_end(video_path_bool=False):
             result.boxes = filtered_boxes  # Update the result with filtered boxes
             filtered_results.append(result)
         
-        test = draw_bounding_boxes(results, roi_frame, model, frame_counter, test)
+        coordinates = draw_bounding_boxes(results, roi_frame, model, frame_counter)
+        print(len(coordinates))
+
+        last_X, X, Y = draw_dxf_fabrics(msp, intersection_frame, last_X, coordinates)
 
         display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, roi_x2, roi_y2)
 
@@ -174,7 +177,6 @@ def detect_fabric_start_end(video_path_bool=False):
     msp.add_line((X, Y), (X, Y + 100))
     doc.saveas(dxf_path)
     print(f"DXF file saved at: {dxf_path}")
-    print(f"test: {test}")
     cap.release()
     cv2.destroyAllWindows()
 
