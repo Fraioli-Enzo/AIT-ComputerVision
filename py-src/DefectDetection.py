@@ -62,7 +62,7 @@ def windows_management():
 
     # Add a trackbar for the confidence threshold (0 to 100, scaled to 0.0 - 1.0)
     cv2.createTrackbar("Threshold", "Control Panel", 25, 100, lambda x: None)
-    cv2.createTrackbar("Saturation", "Control Panel", 25, 100, lambda x: None)
+    cv2.createTrackbar("Saturation", "Control Panel", 100, 100, lambda x: None) # Work in progress for saturation
 
 def draw_bounding_boxes(results, frame, model):
     # Fix for extracting bounding box coordinates
@@ -91,7 +91,7 @@ def detect_fabric_start_end(video_path_bool=False):
     model = YOLO(model_path, task="detect")
 
     windows_management()
-    
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -100,6 +100,12 @@ def detect_fabric_start_end(video_path_bool=False):
 
         # Get the current threshold value from the trackbar
         confidence_threshold = cv2.getTrackbarPos("Threshold", "Control Panel") / 100.0
+        saturation_value = cv2.getTrackbarPos("Saturation", "Control Panel") / 100.0
+    
+        # Adjust saturation
+        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # Convert to HSV
+        hsv_frame[:, :, 1] = np.clip(hsv_frame[:, :, 1] * saturation_value, 0, 255)  # Adjust saturation
+        frame = cv2.cvtColor(hsv_frame, cv2.COLOR_HSV2BGR)  # Convert back to BGR
 
         video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
