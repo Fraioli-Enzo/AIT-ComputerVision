@@ -1,5 +1,6 @@
 from ultralytics import YOLO
 import numpy as np
+import ezdxf
 import cv2
 import os
 
@@ -76,19 +77,35 @@ def draw_bounding_boxes(results, frame, model):
             label = f"{model.names[class_id]} {confidence:.2f}"
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            
+
+def draw_dxf_fabrics(msp, intersection_frame, last_X):
+    Y = 0  
+    X = intersection_frame * 1
+    if intersection_frame != 0:
+        msp.add_line((last_X, Y), (X, Y))
+        msp.add_line((last_X, Y + 100), (X, Y + 100))
+    else:
+        msp.add_line((X, Y), (X, Y + 100)) 
+    last_X = X  
+    return last_X, X, Y
+ 
 def detect_fabric_start_end(video_path_bool=False):   
     cap = initialize_video_capture(video_path_bool)
     if cap is None:
         return
+    
+    #dxf setup
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    last_X = 0  # Initialize the last X coordinate for DXF lines
 
     intersection_frame = 0  # Initialize the test variable
     frame_counter = 0
     frame_delay = 24
     print("Press 'q' to quit")
 
-    model_path = os.path.join(base_path, f"models\\{model_version_epoch}.torchscript")
-    model = YOLO(model_path, task="detect")
+    # model_path = os.path.join(base_path, f"models\\{model_version_epoch}.torchscript")
+    # model = YOLO(model_path, task="detect")
 
     windows_management()
 
@@ -125,25 +142,33 @@ def detect_fabric_start_end(video_path_bool=False):
         intersects_contour = check_intersection(contours, middle_line_x, video_height)
         frame_counter, intersection_frame = draw_middle_line(frame, middle_line_x, video_height, intersects_contour, frame_counter, intersection_frame)
         
-        results = model(roi_frame)
+        last_X, X, Y = draw_dxf_fabrics(msp, intersection_frame, last_X)
 
-        # Filter detections based on the confidence threshold
-        filtered_results = []
-        for result in results:
-            filtered_boxes = []
-            for box in result.boxes:
-                if box.conf >= confidence_threshold:  # Apply the threshold
-                    filtered_boxes.append(box)
-            result.boxes = filtered_boxes  # Update the result with filtered boxes
-            filtered_results.append(result)
+        # results = model(roi_frame)
+
+        # # Filter detections based on the confidence threshold
+        # filtered_results = []
+        # for result in results:
+        #     filtered_boxes = []
+        #     for box in result.boxes:
+        #         if box.conf >= confidence_threshold:  # Apply the threshold
+        #             filtered_boxes.append(box)
+        #     result.boxes = filtered_boxes  # Update the result with filtered boxes
+        #     filtered_results.append(result)
         
-        draw_bounding_boxes(results, roi_frame, model)
+        # draw_bounding_boxes(results, roi_frame, model)
 
         display_foreground(frame, foreground_mask, frame_counter, roi_x1, roi_y1, roi_x2, roi_y2)
 
         key = cv2.waitKey(frame_delay) & 0xFF
         if key == ord('q'):
             break
+    
+    # Save the DXF file
+    dxf_path = os.path.join(base_path, "dxf\\fabric_detection.dxf")
+    msp.add_line((X, Y), (X, Y + 100))
+    doc.saveas(dxf_path)
+    print(f"DXF file saved at: {dxf_path}")
 
     cap.release()
     cv2.destroyAllWindows()
@@ -161,7 +186,7 @@ if __name__ == "__main__":
         "4": "YOLOv11_smallFDD50",
     } 
     # Set the model_version_epoch based on the selected index
-    model_index = "1"
+    model_index = "2"
     model_version_epoch = models[model_index]
     print(f"Selected model: {model_version_epoch}")
 
